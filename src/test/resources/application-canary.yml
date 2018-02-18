@@ -1,0 +1,86 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: canary_test_beta1
+        uri: lb://testservice/betas
+        order: 98
+        predicates:
+        - Path=/get
+        - Query=beta,beta1
+        - name: Canary
+          args:
+            beta: beta1/1.0.0
+            cookie: mybeta1
+            expiration: 10m
+            ratio: 1
+      - id: canary_test_beta2_1
+        uri: lb://testservice/betas
+        order: 98
+        predicates:
+        - Path=/get
+        - Query=beta,beta2
+        - name: Canary
+          args:
+            beta: beta2/1.0.0
+            cookie: mybeta2
+            expiration: 10m
+            ratio: 0
+      - id: canary_test_beta2_2
+        uri: lb://testservice/betas
+        order: 99
+        predicates:
+        - Path=/get
+        - Query=beta,beta2
+        - name: Canary
+          args:
+            beta: beta2/1.0.1
+            cookie: mybeta2
+            expiration: 10m
+            ratio: 0.9999
+            by: enrollment
+            increment: 0.1
+      - id: canary_test_beta3
+        uri: lb://testservice/betas
+        order: 99
+        predicates:
+        - Path=/get
+        - Query=beta,beta3
+        - name: Canary
+          args:
+            beta: beta3/1.0.0
+            cookie: mybeta3
+            expiration: 10m
+            ratio: 0.9999
+            by: time
+            increment: 0.1
+            every: 1s
+      - id: canary_test_beta4_1
+        uri: lb://testservice/betas
+        order: 98
+        predicates:
+        - Path=/get
+        - Query=beta,beta4
+        - name: Canary
+          args:
+            beta: beta4/1.0.0
+            cookie: mybeta4
+            expiration: 10m
+            ratio: 1
+      - id: canary_test_beta4_2
+        uri: lb://testservice/betas
+        order: 98
+        predicates:
+        - Path=/get
+        - Query=beta,beta4
+        - name: Canary
+          args:
+            beta: beta4/1.0.1
+            cookie: mybeta4
+            expiration: 10m
+            ratio: 1
+      - id: canary_test
+        uri: lb://testservice/status/401
+        order: 1000
+        predicates:
+        - Path=/**

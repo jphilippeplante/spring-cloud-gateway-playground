@@ -1,0 +1,86 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: spring-cloud-gateway-playground
+  cloud:
+    gateway:
+      routes:
+      - id: nullroute
+        uri: nullroute://418
+        order: 9000
+        predicates:
+        - Path=/mynullroute
+      - id: ampq
+        uri: amqp://default?exchange=myexchange&routingKey=myroutingkey
+        order: 9000
+        predicates:
+        - Path=/amqp
+      - id: canary_new_v1.0.1a
+        uri: nullroute://201
+        order: 98
+        predicates:
+        - Path=/canary
+        - name: Canary
+          args:
+            beta: 0dbe73c-6761-460e-ac27-8d4237497cac/1.0.1a
+            cookie: mybeta
+            expiration: 10m
+            ratio: 0.01
+      - id: canary_new_v1.0.1b
+        uri: nullroute://202
+        order: 99
+        predicates:
+        - Path=/canary
+        - name: Canary
+          args:
+            beta: d0dbe73c-6761-460e-ac27-8d4237497cac/1.0.1b
+            cookie: mybeta
+            expiration: 10m
+            ratio: 0.25
+            increment: 1
+            by: enrollment
+      - id: canary_new_v1.0.1c
+        uri: nullroute://203
+        order: 99
+        predicates:
+        - Path=/canary
+        - name: Canary
+          args:
+            beta: d0dbe73c-6761-460e-ac27-8d4237497cac/1.0.1b
+            cookie: mybeta
+            expiration: 10m
+            ratio: 0.5
+            increment: 1
+            by: time
+            every: 5s
+      - id: canary_old
+        uri: nullroute://200
+        order: 100
+        predicates:
+        - Path=/canary
+      # =====================================
+      - id: default_path
+        uri: nullroute://404
+        order: 10000
+        predicates:
+        - Path=/**
+  rabbitmq:
+    host: 192.168.99.100
+    port: 5672
+    username: guest
+    password: guest
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.http.server.reactive: DEBUG
+    org.springframework.web.reactive: DEBUG
+    reactor.ipc.netty: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
