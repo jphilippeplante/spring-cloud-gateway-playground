@@ -14,21 +14,20 @@
  * limitations under the License.
  *
  */
-package com.github.jphilippeplante.springcloudgatewayplayground;
+package com.github.jphilippeplante.springcloudgatewayplayground.exception;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.web.server.SecurityWebFilterChain;
+import io.jsonwebtoken.ClaimJwtException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 
-@Configuration
-public class SecurityConfig {
+public class InvalidScopeException extends ClaimJwtException {
 
-    @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        http.authorizeExchange().anyExchange().permitAll();
-        return http.build();
+    public InvalidScopeException(Header header, Claims claims, String message) {
+        super(header, claims, message);
+    }
+
+    public InvalidScopeException(Header header, Claims claims, String message, Throwable cause) {
+        super(header, claims, message, cause);
     }
 
 }
-

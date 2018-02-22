@@ -14,21 +14,16 @@
  * limitations under the License.
  *
  */
-package com.github.jphilippeplante.springcloudgatewayplayground;
+package com.github.jphilippeplante.springcloudgatewayplayground.filter.jwtvalidation;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.web.server.SecurityWebFilterChain;
+import io.jsonwebtoken.SigningKeyResolver;
 
-@Configuration
-public class SecurityConfig {
+public class DefaultFilterSigningKeyResolver implements FilterSigningKeyResolver {
 
-    @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        http.authorizeExchange().anyExchange().permitAll();
-        return http.build();
+    public static final String BEAN_NAME = "defaultFilterSigningKeyResolver";
+
+    @Override
+    public SigningKeyResolver resolve() {
+        return null;
     }
-
 }
-

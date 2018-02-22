@@ -16,20 +16,19 @@
 
 package com.github.jphilippeplante.springcloudgatewayplayground.filter;
 
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.isAlreadyRouted;
-import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.setAlreadyRouted;
-
-import java.net.URI;
-import java.util.Optional;
-
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ServerWebExchange;
-
 import reactor.core.publisher.Mono;
+
+import java.net.URI;
+import java.util.Optional;
+
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.isAlreadyRouted;
+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.setAlreadyRouted;
 
 /**
  * NullRouteFilter is used to return a status code in the response without any backend.
@@ -38,32 +37,32 @@ import reactor.core.publisher.Mono;
  */
 public class NullRouteFilter implements GlobalFilter, Ordered {
 
-	@Override
-	public int getOrder() {
-		return Ordered.LOWEST_PRECEDENCE;
-	}
+    @Override
+    public int getOrder() {
+        return Ordered.LOWEST_PRECEDENCE;
+    }
 
-	@Override
-	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-		URI requestUrl = exchange.getRequiredAttribute(GATEWAY_REQUEST_URL_ATTR);
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        URI requestUrl = exchange.getRequiredAttribute(GATEWAY_REQUEST_URL_ATTR);
 
-		// check for nullroute scheme
-		String scheme = requestUrl.getScheme();
-		if (isAlreadyRouted(exchange) || (!"nullroute".equals(scheme))) {
-			return chain.filter(exchange);
-		}
-		setAlreadyRouted(exchange);
+        // check for nullroute scheme
+        String scheme = requestUrl.getScheme();
+        if (isAlreadyRouted(exchange) || (!"nullroute".equals(scheme))) {
+            return chain.filter(exchange);
+        }
+        setAlreadyRouted(exchange);
 
-		// status code is in the host part of the uri. If not found, will use 200 (OK)
-		Optional<HttpStatus> httpStatus = Optional.empty();
-		if (requestUrl.getHost().matches("\\d+")) {
-			Integer httpStatusCode = Integer.valueOf(requestUrl.getHost());
-			httpStatus = Optional.ofNullable(HttpStatus.resolve(httpStatusCode));
-		}
+        // status code is in the host part of the uri. If not found, will use 200 (OK)
+        Optional<HttpStatus> httpStatus = Optional.empty();
+        if (requestUrl.getHost().matches("\\d+")) {
+            Integer httpStatusCode = Integer.valueOf(requestUrl.getHost());
+            httpStatus = Optional.ofNullable(HttpStatus.resolve(httpStatusCode));
+        }
 
-		exchange.getResponse().setStatusCode(httpStatus.orElse(HttpStatus.OK));
+        exchange.getResponse().setStatusCode(httpStatus.orElse(HttpStatus.OK));
 
-		return chain.filter(exchange);
-	}
+        return chain.filter(exchange);
+    }
 
 }

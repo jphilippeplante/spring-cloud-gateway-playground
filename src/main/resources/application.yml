@@ -7,6 +7,18 @@ spring:
   cloud:
     gateway:
       routes:
+      - id: jwt_validation
+        uri: nullroute://200
+        order: 1
+        predicates:
+        - Path=/jwtvalidation
+        filters:
+        - name: ValidateJwt
+          args:
+            iss: mine
+            aud: our_audience
+            scope: myscope
+            signingKeyResolver: customFilterSigningKeyResolver
       - id: nullroute
         uri: nullroute://418
         order: 9000
