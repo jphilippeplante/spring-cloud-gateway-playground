@@ -52,7 +52,12 @@ public class AmqpFilterTest {
 
     @Test
     public void testFilterInvalidRoute() {
-        Route value = new Route("1", URI.create("smb://my-smb-server"), 0, swe -> true, Collections.emptyList());
+        Route value = Route.builder()
+                .id("1").uri(URI.create("smb://my-smb-server"))
+                .order(0)
+                .predicate(swe -> true)
+                .filters(Collections.emptyList())
+                .build();
         ServerWebExchange webExchange = testFilter(value);
         assertFalse(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals("NEW", ReflectionTestUtils.getField(webExchange.getResponse(), "state").toString());
@@ -62,8 +67,12 @@ public class AmqpFilterTest {
     public void testFilterWorksDefault() {
         when(applicationContext.getBean(RabbitTemplate.class)).thenReturn(mockRabbitTemplate);
 
-        Route value = new Route("1", URI.create("amqp://default"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder()
+                .id("1")
+                .uri(URI.create("amqp://default"))
+                .order(0).predicate(swe -> true)
+                .filters(Collections.emptyList())
+                .build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.ACCEPTED, webExchange.getResponse().getStatusCode());
@@ -75,8 +84,13 @@ public class AmqpFilterTest {
         when(applicationContext.getBean(RabbitTemplate.class)).thenReturn(mockRabbitTemplate);
         doThrow(new AmqpConnectException("AmqpConnectException", null)).when(mockRabbitTemplate).correlationConvertAndSend(any(Message.class), any(CorrelationData.class));
 
-        Route value = new Route("1", URI.create("amqp://default"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder()
+                .id("1")
+                .uri(URI.create("amqp://default"))
+                .order(0)
+                .predicate(swe -> true)
+                .filters(Collections.emptyList())
+                .build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, webExchange.getResponse().getStatusCode());
@@ -86,8 +100,13 @@ public class AmqpFilterTest {
     public void testFilterWorksDefaultWithRoutingKey() {
         when(applicationContext.getBean(RabbitTemplate.class)).thenReturn(mockRabbitTemplate);
 
-        Route value = new Route("1", URI.create("amqp://default?routingKey=myrouting"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder()
+                .id("1")
+                .uri(URI.create("amqp://default?routingKey=myrouting"))
+                .order(0)
+                .predicate(swe -> true)
+                .filters(Collections.emptyList())
+                .build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.ACCEPTED, webExchange.getResponse().getStatusCode());
@@ -98,8 +117,13 @@ public class AmqpFilterTest {
     public void testFilterWorksDefaultWithExchangeAndRoutingKey() {
         when(applicationContext.getBean(RabbitTemplate.class)).thenReturn(mockRabbitTemplate);
 
-        Route value = new Route("1", URI.create("amqp://default?exchange=myexchange&routingKey=myrouting"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder()
+                .id("1")
+                .uri(URI.create("amqp://default?exchange=myexchange&routingKey=myrouting"))
+                .order(0)
+                .predicate(swe -> true)
+                .filters(Collections.emptyList())
+                .build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.ACCEPTED, webExchange.getResponse().getStatusCode());
@@ -110,8 +134,11 @@ public class AmqpFilterTest {
     public void testFilterWorksDefaultWithBody() {
         when(applicationContext.getBean(RabbitTemplate.class)).thenReturn(mockRabbitTemplate);
 
-        Route value = new Route("1", URI.create("amqp://default?exchange=myexchange&routingKey=myrouting"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder()
+                .id("1")
+                .uri(URI.create("amqp://default?exchange=myexchange&routingKey=myrouting"))
+                .order(0).predicate(swe -> true)
+                .filters(Collections.emptyList()).build();
         ServerWebExchange webExchange = testFilter(value, "mybody");
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.ACCEPTED, webExchange.getResponse().getStatusCode());
@@ -119,10 +146,14 @@ public class AmqpFilterTest {
 
     @Test
     public void testFilterWorksCustomRabbitTemplateBean() {
-        when(applicationContext.getBean("myRabbitTemplate")).thenReturn(mockRabbitTemplate);
+        when(applicationContext.getBean(eq("myRabbitTemplate"), eq(RabbitTemplate.class))).thenReturn(mockRabbitTemplate);
 
-        Route value = new Route("1", URI.create("amqp://myRabbitTemplate?exchange=myexchange&routingKey=myrouting"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder()
+                .id("1")
+                .uri(URI.create("amqp://myRabbitTemplate?exchange=myexchange&routingKey=myrouting"))
+                .order(0).predicate(swe -> true)
+                .filters(Collections.emptyList())
+                .build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.ACCEPTED, webExchange.getResponse().getStatusCode());
@@ -130,11 +161,16 @@ public class AmqpFilterTest {
 
     @Test
     public void testFilterWorksUnknowCustomRabbitTemplateBean() {
+        when(applicationContext.getBean(eq("myRabbitTemplate"), eq(RabbitTemplate.class))).thenThrow(new NoSuchBeanDefinitionException("myRabbitTemplate"));
         when(applicationContext.getBean(RabbitTemplate.class)).thenReturn(mockRabbitTemplate);
-        when(applicationContext.getBean("myRabbitTemplate")).thenThrow(new NoSuchBeanDefinitionException("myRabbitTemplate"));
 
-        Route value = new Route("1", URI.create("amqp://myRabbitTemplate?exchange=myexchange&routingKey=myrouting"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder()
+                .id("1")
+                .uri(URI.create("amqp://myRabbitTemplate?exchange=myexchange&routingKey=myrouting"))
+                .order(0)
+                .predicate(swe -> true)
+                .filters(Collections.emptyList())
+                .build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.ACCEPTED, webExchange.getResponse().getStatusCode());
@@ -142,11 +178,14 @@ public class AmqpFilterTest {
 
     @Test
     public void testFilterInvalidTypeCustomRabbitTemplateBean() {
+        when(applicationContext.getBean(eq("myRabbitTemplate"), eq(RabbitTemplate.class))).thenThrow(new ClassCastException());
         when(applicationContext.getBean(RabbitTemplate.class)).thenReturn(mockRabbitTemplate);
-        when(applicationContext.getBean("myRabbitTemplate")).thenReturn("invalidType");
 
-        Route value = new Route("1", URI.create("amqp://myRabbitTemplate?exchange=myexchange&routingKey=myrouting"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder().id("1")
+                .uri(URI.create("amqp://myRabbitTemplate?exchange=myexchange&routingKey=myrouting"))
+                .order(0)
+                .predicate(swe -> true)
+                .filters(Collections.emptyList()).build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.ACCEPTED, webExchange.getResponse().getStatusCode());

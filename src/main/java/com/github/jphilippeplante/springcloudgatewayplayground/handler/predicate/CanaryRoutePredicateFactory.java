@@ -18,15 +18,13 @@ package com.github.jphilippeplante.springcloudgatewayplayground.handler.predicat
 
 import com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.support.CanaryBetaConfiguration;
 import com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.support.CanaryRoutePredicateFactorySupport;
-import org.springframework.cloud.gateway.handler.predicate.RoutePredicateFactory;
+import org.springframework.cloud.gateway.handler.predicate.AbstractRoutePredicateFactory;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.tuple.Tuple;
 import org.springframework.web.server.ServerWebExchange;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -38,15 +36,8 @@ import java.util.function.Predicate;
  *
  * @author Jean-Philippe Plante
  */
-public class CanaryRoutePredicateFactory implements RoutePredicateFactory {
+public class CanaryRoutePredicateFactory extends AbstractRoutePredicateFactory<CanaryConfig> {
 
-    public static final String ARG_BETA_ID = "beta";
-    public static final String ARG_COOKIE = "cookie";
-    public static final String ARG_EXPIRATION = "expiration";
-    public static final String ARG_RATIO = "ratio";
-    public static final String ARG_INCREMENT_BY = "by";
-    public static final String ARG_INCREMENT = "increment";
-    public static final String ARG_EVERY = "every";
     public static final String HEADER_X_BETA = "X-Beta-";
     public static final String BY_ENROLLMENT = "enrollment";
     public static final String BY_TIME = "time";
@@ -55,22 +46,13 @@ public class CanaryRoutePredicateFactory implements RoutePredicateFactory {
     private CanaryRoutePredicateFactorySupport support;
 
     public CanaryRoutePredicateFactory(CanaryRoutePredicateFactorySupport support) {
+        super(CanaryConfig.class);
         this.support = support;
     }
 
     @Override
-    public List<String> argNames() {
-        return Arrays.asList(ARG_BETA_ID);
-    }
-
-    @Override
-    public boolean validateArgs() {
-        return false;
-    }
-
-    @Override
-    public Predicate<ServerWebExchange> apply(Tuple args) {
-        CanaryBetaConfiguration configuration = support.getConfiguration(args);
+    public Predicate<ServerWebExchange> apply(CanaryConfig config) {
+        CanaryBetaConfiguration configuration = support.getConfiguration(config);
         return exchange -> ifBetaActivePredicate(configuration).or(
                 randomBetaEnroll(configuration)).test(exchange);
     }

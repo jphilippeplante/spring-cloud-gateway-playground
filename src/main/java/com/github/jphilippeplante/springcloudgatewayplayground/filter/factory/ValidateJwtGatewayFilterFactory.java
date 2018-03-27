@@ -32,9 +32,8 @@ import io.jsonwebtoken.SigningKeyResolver;
 import io.jsonwebtoken.impl.DefaultJwt;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.tuple.Tuple;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -47,16 +46,7 @@ import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
-public class ValidateJwtGatewayFilterFactory implements GatewayFilterFactory {
-
-    private static final String ARG_ISSUER = "iss";
-    private static final String ARG_SCOPES = "scope";
-    private static final String ARG_AUDIENCE = "aud";
-    private static final String ARG_SIGNINGKEY = "signingKeyResolver";
-    private static final String ARG_SCOPE_VALIDATION = "scopeValidation";
-    private static final String ARG_SCOPE_VALIDATION_ALL = "all";
-    private static final String ARG_SCOPE_VALIDATION_ANY = "any";
-
+public class ValidateJwtGatewayFilterFactory extends AbstractGatewayFilterFactory<ValidateJwtConfig> {
 
     private static final String BEARER_TYPE = "Bearer";
     private static final String HEADER_AUTHORIZATION = "Authorization";
@@ -70,38 +60,28 @@ public class ValidateJwtGatewayFilterFactory implements GatewayFilterFactory {
     }
 
     @Override
-    public List<String> argNames() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public boolean validateArgs() {
-        return false;
-    }
-
-    @Override
-    public GatewayFilter apply(Tuple args) {
+    public GatewayFilter apply(ValidateJwtConfig config) {
         return (exchange, chain) -> {
 
             extractJwt(exchange).ifPresent(jwt -> {
-                Jwt<Header, Claims> claims = retreiveClaims(getFilterSigningResolver(args), jwt);
+                Jwt<Header, Claims> claims = retreiveClaims(getFilterSigningResolver(config), jwt);
                 // validate jwt expiration, not before, audience and scopes (any or all)
                 isExpired(claims);
                 isNotBefore(claims);
-                validateIssuer(args, claims);
-                validateAudience(args, claims);
-                validateScopes(args, claims);
+                validateIssuer(config, claims);
+                validateAudience(config, claims);
+                validateScopes(config, claims);
             });
 
             return chain.filter(exchange);
         };
     }
 
-    private FilterSigningKeyResolver getFilterSigningResolver(Tuple args) {
+    private FilterSigningKeyResolver getFilterSigningResolver(ValidateJwtConfig config) {
         FilterSigningKeyResolver filterSigningKeyResolver = defaultFilterSigningKeyResolver;
-        if (args.hasFieldName(ARG_SIGNINGKEY) && !StringUtils.isEmpty(args.getString(ARG_SIGNINGKEY))) {
+        if (!StringUtils.isEmpty(config.getSigningKeyResolver())) {
             try {
-                filterSigningKeyResolver = context.getBean(args.getString(ARG_SIGNINGKEY), FilterSigningKeyResolver.class);
+                filterSigningKeyResolver = context.getBean(config.getSigningKeyResolver(), FilterSigningKeyResolver.class);
             } catch (NoSuchBeanDefinitionException e) {
                 e.printStackTrace();
                 //TODO LOG
@@ -129,37 +109,33 @@ public class ValidateJwtGatewayFilterFactory implements GatewayFilterFactory {
         }
     }
 
-    private void validateIssuer(Tuple args, Jwt<Header, Claims> claims) {
+    private void validateIssuer(ValidateJwtConfig config, Jwt<Header, Claims> claims) {
         // if issuer is specified in the configuration, validate it
-        if (args.hasFieldName(ARG_ISSUER)) {
-            String issuer = args.getString(ARG_ISSUER);
-            String jwtIssuer = claims.getBody().getIssuer();
-            if (StringUtils.isEmpty(issuer) || !issuer.equalsIgnoreCase(jwtIssuer)) {
-                throw new InvalidIssuerException(claims.getHeader(), claims.getBody(), "Invalid issuer, expected " + issuer);
-            }
+        String issuer = config.getIss();
+        String jwtIssuer = claims.getBody().getIssuer();
+        if (StringUtils.isEmpty(issuer) || !issuer.equalsIgnoreCase(jwtIssuer)) {
+            throw new InvalidIssuerException(claims.getHeader(), claims.getBody(), "Invalid issuer, expected " + issuer);
         }
     }
 
-    private void validateAudience(Tuple args, Jwt<Header, Claims> claims) {
+    private void validateAudience(ValidateJwtConfig config, Jwt<Header, Claims> claims) {
         // if audience is specified in the configuration, validate it
-        if (args.hasFieldName(ARG_AUDIENCE)) {
-            String audience = args.getString(ARG_AUDIENCE);
-            String jwtAudience = claims.getBody().getAudience();
-            if (StringUtils.isEmpty(audience) || !audience.equalsIgnoreCase(jwtAudience)) {
-                throw new InvalidAudienceException(claims.getHeader(), claims.getBody(), "Invalid audience, expected " + audience);
-            }
+        String audience = config.getAud();
+        String jwtAudience = claims.getBody().getAudience();
+        if (StringUtils.isEmpty(audience) || !audience.equalsIgnoreCase(jwtAudience)) {
+            throw new InvalidAudienceException(claims.getHeader(), claims.getBody(), "Invalid audience, expected " + audience);
         }
     }
 
-    private void validateScopes(Tuple args, Jwt<Header, Claims> claims) {
+    private void validateScopes(ValidateJwtConfig config, Jwt<Header, Claims> claims) {
         // configuration for the filter
         List<String> scopes = Collections.emptyList();
-        if (args.hasFieldName(ARG_SCOPES)) {
-            scopes = getListFromSeparatedCommaValue(args.getString(ARG_SCOPES));
+        if (!StringUtils.isEmpty(config.getScope())) {
+            scopes = getListFromSeparatedCommaValue(config.getScope());
         }
-        String scopeValidationType = ARG_SCOPE_VALIDATION_ANY;
-        if (args.hasFieldName(ARG_SCOPE_VALIDATION)) {
-            scopeValidationType = args.getString(ARG_SCOPE_VALIDATION);
+        String scopeValidationType = "any";
+        if (!StringUtils.isEmpty(config.getScopeValidation())) {
+            scopeValidationType = config.getScopeValidation();
         }
 
         // get scopes from jwt
@@ -168,7 +144,7 @@ public class ValidateJwtGatewayFilterFactory implements GatewayFilterFactory {
 
         // validate scopes
         List<String> finalScopes = scopes;
-        if (ARG_SCOPE_VALIDATION_ALL.equalsIgnoreCase(scopeValidationType)) {
+        if ("all".equalsIgnoreCase(scopeValidationType)) {
             if (!jwtScopes.stream().allMatch(finalScopes::contains)) {
                 throw new InvalidScopeException(claims.getHeader(), claims.getBody(), "Insufficient scope, expected all of: " + finalScopes.toString());
             }

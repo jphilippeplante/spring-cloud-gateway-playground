@@ -34,8 +34,7 @@ public class NullRouteFilterTest {
 
     @Test
     public void testFilterInvalidRoute() {
-        Route value = new Route("1", URI.create("smb://my-smb-server"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder().id("1").uri(URI.create("smb://my-smb-server")).order(0).predicate(swe -> true).filters(Collections.emptyList()).build();
         ServerWebExchange webExchange = testFilter(value);
         assertFalse(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals("NEW",
@@ -45,8 +44,7 @@ public class NullRouteFilterTest {
 
     @Test
     public void testFilterForNullRouteWithHttpStatusCode() {
-        Route value = new Route("1", URI.create("nullroute://418"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder().id("1").uri(URI.create("nullroute://418")).order(0).predicate(swe -> true).filters(Collections.emptyList()).build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.I_AM_A_TEAPOT, webExchange.getResponse().getStatusCode());
@@ -54,8 +52,7 @@ public class NullRouteFilterTest {
 
     @Test
     public void testFilterForNullRouteWithHttpStatusCodeNonNumeric() {
-        Route value = new Route("1", URI.create("nullroute://mystatus"), 0, swe -> true,
-                Collections.emptyList());
+        Route value = Route.builder().id("1").uri(URI.create("nullroute://mystatus")).order(0).predicate(swe -> true).filters(Collections.emptyList()).build();
         ServerWebExchange webExchange = testFilter(value);
         assertTrue(ServerWebExchangeUtils.isAlreadyRouted(webExchange));
         assertEquals(HttpStatus.OK, webExchange.getResponse().getStatusCode());

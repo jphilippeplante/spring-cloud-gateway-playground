@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springBootVersion = '2.0.0.RC1'
+        springBootVersion = '2.0.0.RELEASE'
     }
     repositories {
         mavenCentral()
@@ -29,7 +29,7 @@ repositories {
 
 
 ext {
-    springCloudVersion = 'Finchley.M6'
+    springCloudVersion = 'Finchley.M9'
 }
 
 dependencies {

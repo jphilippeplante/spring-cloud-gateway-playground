@@ -16,7 +16,7 @@
  */
 package com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.support;
 
-import org.springframework.tuple.Tuple;
+import com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryConfig;
 import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.StringUtils;
 
@@ -25,13 +25,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
-import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.ARG_BETA_ID;
-import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.ARG_COOKIE;
-import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.ARG_EVERY;
-import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.ARG_EXPIRATION;
-import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.ARG_INCREMENT;
-import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.ARG_INCREMENT_BY;
-import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.ARG_RATIO;
 import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.BY_ENROLLMENT;
 import static com.github.jphilippeplante.springcloudgatewayplayground.handler.predicate.CanaryRoutePredicateFactory.BY_TIME;
 
@@ -74,57 +67,58 @@ public class CanaryRoutePredicateFactorySupport {
     /**
      * Load and save the configuration use in the predicate.
      *
-     * @param args from the predicate in the yml
+     * @param config from the predicate in the yml
      * @return a configuration for a beta
      */
-    public CanaryBetaConfiguration getConfiguration(Tuple args) {
-        String betaId = args.getString(ARG_BETA_ID);
+    public CanaryBetaConfiguration getConfiguration(CanaryConfig config) {
+        String betaId = config.getBeta();
         if (configurations.containsKey(betaId)) {
             return configurations.get(betaId);
         }
 
         CanaryBetaConfiguration configuration = new CanaryBetaConfiguration();
         configuration.setBetaId(betaId);
-        if (args.hasFieldName(ARG_COOKIE)) {
-            configuration.setCookie(args.getString(ARG_COOKIE));
+        if (!StringUtils.isEmpty(config.getCookie())) {
+            configuration.setCookie(config.getCookie());
         }
-        if (args.hasFieldName(ARG_EXPIRATION)) {
-            String expiration = args.getString(ARG_EXPIRATION);
+        if (!StringUtils.isEmpty(config.getExpiration())) {
+            String expiration = config.getExpiration();
             Duration duration = Duration.parse("PT" + expiration.trim().toUpperCase());
             configuration.setExpiration(duration);
         }
-        if (args.hasFieldName(ARG_RATIO)) {
-            double ratio = args.getDouble(ARG_RATIO);
+        if (config.getRatio() != null) {
+            double ratio = config.getRatio();
             ratio = ratio < 0 ? 0.01 : ratio;
             ratio = ratio > 1 ? 1 : ratio;
             configuration.setRatio(ratio);
         }
 
         // validate fields
-        if (StringUtils.isEmpty(betaId) || StringUtils.isEmpty(configuration.getCookie())
+        if (StringUtils.isEmpty(betaId)
+                || StringUtils.isEmpty(configuration.getCookie())
                 || StringUtils.isEmpty(configuration.getExpiration())
-                || StringUtils.isEmpty(configuration.getRatio())) {
+                || configuration.getRatio() == null) {
             throw new IllegalStateException(String.format(INVALID_CONFIG, betaId));
         }
 
         configuration.setBetaId(betaId);
 
         // optional fields
-        if (args.hasFieldName(ARG_INCREMENT_BY)) {
+        if (!StringUtils.isEmpty(config.getBy())) {
             // time or enrollment
-            String by = args.getString(ARG_INCREMENT_BY);
+            String by = config.getBy();
             if (BY_ENROLLMENT.equalsIgnoreCase(by) || BY_TIME.equalsIgnoreCase(by)) {
                 configuration.setBy(by);
                 // conf for the auto-increase of the ratio enrollment, by time or
                 // enrollment hits
-                if (args.hasFieldName(ARG_INCREMENT)) {
-                    double increment = args.getDouble(ARG_INCREMENT);
+                if (config.getIncrement() != null) {
+                    double increment = config.getIncrement();
                     increment = increment < 0 ? 0.01 : increment;
                     increment = increment > 1 ? 1 : increment;
                     configuration.setIncrement(increment);
                 }
-                if (BY_TIME.equalsIgnoreCase(by) && args.hasFieldName(ARG_EVERY)) {
-                    String every = args.getString(ARG_EVERY);
+                if (BY_TIME.equalsIgnoreCase(by) && !StringUtils.isEmpty(config.getEvery())) {
+                    String every = config.getEvery();
                     Duration duration = Duration.parse("PT" + every.trim().toUpperCase());
                     configuration.setEvery(duration);
                 }

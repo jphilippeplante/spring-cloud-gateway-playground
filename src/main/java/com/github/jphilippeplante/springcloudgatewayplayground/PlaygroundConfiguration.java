@@ -41,7 +41,7 @@ public class PlaygroundConfiguration {
 
     @Bean
     public CanaryRoutePredicateFactory canaryPredicateFactory() {
-        return new CanaryRoutePredicateFactory(new CanaryRoutePredicateFactorySupport());
+        return new CanaryRoutePredicateFactory(canaryRoutePredicateFactorySupport());
     }
 
     @Bean
@@ -63,6 +63,11 @@ public class PlaygroundConfiguration {
     @Bean
     public ValidateJwtGatewayFilterFactory validateJwtGatewayFilterFactory(ConfigurableApplicationContext context, DefaultFilterSigningKeyResolver defaultFilterSigningKeyResolver) {
         return new ValidateJwtGatewayFilterFactory(context, defaultFilterSigningKeyResolver);
+    }
+
+    @Bean
+    public CanaryRoutePredicateFactorySupport canaryRoutePredicateFactorySupport() {
+        return new CanaryRoutePredicateFactorySupport();
     }
 
     @Configuration
